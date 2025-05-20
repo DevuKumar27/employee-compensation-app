@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Experience Grouping</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>Group Employees by Experience</h2>
+
+  <label for="groupBy">Group By:</label>
+  <select id="groupBy" onchange="fetchExperienceGroups()">
+    <option value="">None</option>
+    <option value="Role">Role</option>
+    <option value="Location">Location</option>
+  </select>
+
+  <canvas id="experienceChart" width="800" height="400"></canvas>
+
+  <script>
+    let experienceChartInstance = null;
+
+    function fetchExperienceGroups() {
+      const groupBy = document.getElementById('groupBy').value;
+      const url = groupBy ? `/group_by_experience?group_by=${groupBy}` : '/group_by_experience';
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          const labels = [...new Set(data.map(d => d.experience_range))];
+          const subGroups = [...new Set(data.map(d => d[groupBy]))];
+
+          const datasets = groupBy ? subGroups.map(sub => {
+            return {
+              label: sub,
+              data: labels.map(label => {
+                const entry = data.find(d => d.experience_range === label && d[groupBy] === sub);
+                return entry ? entry.count : 0;
+              }),
+              backgroundColor: randomColor()
+            };
+          }) : [{
+            label: 'Employees',
+            data: labels.map(label => {
+              const entry = data.find(d => d.experience_range === label);
+              return entry ? entry.count : 0;
+            }),
+            backgroundColor: 'lightgreen'
+          }];
+
+          const ctx = document.getElementById('experienceChart').getContext('2d');
+          if (experienceChartInstance) experienceChartInstance.destroy();
+
+          experienceChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: datasets },
+            options: {
+              responsive: true,
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+        });
+    }
+
+    function randomColor() {
+      return 'hsl(' + Math.floor(Math.random() * 360) + ', 70%, 70%)';
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchExperienceGroups);
+  </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Employee Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>Filter Employees</h2>
+
+  <label for="roleSelect">Role:</label>
+  <select id="roleSelect">
+    <option value="">-- Select Role --</option>
+  </select>
+
+  <label for="locationSelect">Location:</label>
+  <select id="locationSelect">
+    <option value="">-- Select Location --</option>
+  </select>
+
+  <label for="toggle">Include Inactive:</label>
+  <input type="checkbox" id="toggle">
+
+  <button onclick="fetchEmployees()">Get Employees</button>
+
+  <h3>Employees</h3>
+  <table border="1" id="employeeTable">
+    <thead>
+      <tr><th>Name</th><th>Role</th><th>Location</th><th>Compensation</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h3>Average Compensation by Location</h3>
+  <label for="roleDropdown">Select Role:</label>
+  <select id="roleDropdown" onchange="updateBarChart()">
+    <option value="">-- Choose Role --</option>
+  </select>
+
+  <canvas id="barChart" width="600" height="300"></canvas>
+
+  <script>
+    let chartInstance = null;
+
+    async function populateDropdown(endpoint, dropdownId) {
+      const res = await fetch(endpoint);
+      const items = await res.json();
+      const dropdown = document.getElementById(dropdownId);
+      dropdown.innerHTML = '<option value="">-- Select --</option>';
+      items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item;
+        option.textContent = item;
+        dropdown.appendChild(option);
+      });
+    }
+
+    function fetchEmployees() {
+      const role = document.getElementById('roleSelect').value;
+      const location = document.getElementById('locationSelect').value;
+      const includeInactive = document.getElementById('toggle').checked;
+
+      fetch(`/get_employees?role=${role}&location=${location}&include_inactive=${includeInactive}`)
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector('#employeeTable tbody');
+          tbody.innerHTML = '';
+          data.forEach(emp => {
+            const row = `<tr>
+              <td>${emp.Name}</td>
+              <td>${emp.Role}</td>
+              <td>${emp.Location}</td>
+              <td>${emp.CurrentComp}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+          });
+        });
+    }
+
+    function updateBarChart() {
+      const selectedRole = document.getElementById('roleDropdown').value;
+      if (!selectedRole) return;
+
+      fetch(`/get_avg_by_location?role=${selectedRole}`)
+        .then(res => res.json())
+        .then(data => {
+          const labels = data.map(d => d.Location);
+          const values = data.map(d => d.avg_comp);
+
+          const ctx = document.getElementById('barChart').getContext('2d');
+          if (chartInstance) {
+            chartInstance.destroy();
+          }
+
+          chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: `Avg Compensation (${selectedRole})`,
+                data: values,
+                backgroundColor: 'skyblue',
+                borderColor: 'steelblue',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+          });
+        })
+        .catch(err => console.error("Error fetching chart data:", err));
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      populateDropdown('/get_roles', 'roleSelect');
+      populateDropdown('/get_roles', 'roleDropdown');
+      populateDropdown('/get_locations', 'locationSelect');
+
+      // Optional: preload chart with a role if you like
+      // setTimeout(() => {
+      //   document.getElementById('roleDropdown').value = 'Analyst';
+      //   updateBarChart();
+      // }, 500);
+    });
+  </script>
+</body>
+</html>

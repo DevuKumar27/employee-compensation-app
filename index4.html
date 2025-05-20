@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Employee Management Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .controls { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background-color: #f9f9f9; }
+    .controls label { display: inline-block; margin-right: 10px; margin-bottom: 5px; }
+    .controls input[type="text"], .controls select, .controls input[type="number"] {
+      padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-right: 15px;
+    }
+    .controls button {
+      padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;
+    }
+    .controls button:hover { background-color: #0056b3; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    .download-btn { background-color: #28a745; margin-top: 10px; }
+    .download-btn:hover { background-color: #218838; }
+  </style>
+</head>
+<body>
+  <h2>Employee Data with Compensation Simulation</h2>
+
+  <div class="controls">
+    <label for="roleFilter">Role:</label>
+    <select id="roleFilter">
+      <option value="">All Roles</option>
+      </select>
+
+    <label for="locationFilter">Location:</label>
+    <select id="locationFilter">
+      <option value="">All Locations</option>
+      </select>
+
+    <label for="includeInactive">Include Inactive:</label>
+    <input type="checkbox" id="includeInactive">
+
+    <label for="globalIncrement">Global % Increment:</label>
+    <input type="number" id="globalIncrement" value="0" step="0.1" placeholder="e.g., 5 for 5%">
+
+    <button onclick="fetchAndDisplayEmployees()">Apply Filters & Simulate</button>
+    <button class="download-btn" onclick="downloadCSV()">Download CSV</button>
+  </div>
+
+  <h3>Filtered Employees</h3>
+  <table id="employeeTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Role</th>
+        <th>Location</th>
+        <th>Experience</th>
+        <th>Current Compensation</th>
+        <th>New Compensation</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      </tbody>
+  </table>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Load roles and locations on page load
+      fetch('/get_roles_and_locations')
+        .then(res => res.json())
+        .then(data => {
+          const roleSelect = document.getElementById('roleFilter');
+          data.roles.forEach(role => {
+            const option = document.createElement('option');
+            option.value = role;
+            option.textContent = role;
+            roleSelect.appendChild(option);
+          });
+
+          const locationSelect = document.getElementById('locationFilter');
+          data.locations.forEach(location => {
+            const option = document.createElement('option');
+            option.value = location;
+            option.textContent = location;
+            locationSelect.appendChild(option);
+          });
+
+          // Fetch employees initially when page loads
+          fetchAndDisplayEmployees();
+        })
+        .catch(err => console.error("Error loading roles/locations:", err));
+    });
+
+    function fetchAndDisplayEmployees() {
+      const role = document.getElementById('roleFilter').value;
+      const location = document.getElementById('locationFilter').value;
+      const includeInactive = document.getElementById('includeInactive').checked;
+      const globalIncrement = parseFloat(document.getElementById('globalIncrement').value || 0);
+
+      const queryParams = new URLSearchParams({
+        role: role,
+        location: location,
+        include_inactive: includeInactive,
+        global_increment: globalIncrement
+      }).toString();
+
+      fetch(`/get_filtered_employees?${queryParams}`)
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector('#employeeTable tbody');
+          tbody.innerHTML = ''; // Clear existing rows
+          data.forEach(emp => {
+            const row = `<tr>
+              <td>${emp.Name}</td>
+              <td>${emp.Role}</td>
+              <td>${emp.Location}</td>
+              <td>${emp.Experience !== null ? emp.Experience : 'N/A'}</td>
+              <td>${emp.CurrentComp}</td>
+              <td>${emp.NewComp}</td>
+              <td>${emp.Status}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+          });
+        })
+        .catch(err => console.error("Error fetching employee data:", err));
+    }
+
+    function downloadCSV() {
+      const role = document.getElementById('roleFilter').value;
+      const location = document.getElementById('locationFilter').value;
+      const includeInactive = document.getElementById('includeInactive').checked;
+      const globalIncrement = parseFloat(document.getElementById('globalIncrement').value || 0);
+
+      const queryParams = new URLSearchParams({
+        role: role,
+        location: location,
+        include_inactive: includeInactive,
+        global_increment: globalIncrement
+      }).toString();
+
+      // Trigger the CSV download endpoint
+      window.location.href = `/download_csv?${queryParams}`;
+    }
+  </script>
+</body>
+</html>

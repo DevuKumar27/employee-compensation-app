@@ -1,0 +1,52 @@
+<!-- === templates/index.html === -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Compensation Simulator</title>
+</head>
+<body>
+  <h2>Simulate Compensation Increments</h2>
+
+  <label for="incrementInput">Global % Increment:</label>
+  <input type="number" id="incrementInput" placeholder="Enter % increase">
+  <button onclick="simulateIncrement()">Simulate</button>
+
+  <h3>Updated Employee Compensation</h3>
+  <table border="1" id="compTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Role</th>
+        <th>Location</th>
+        <th>Current Compensation</th>
+        <th>New Compensation</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    function simulateIncrement() {
+      const percent = document.getElementById('incrementInput').value;
+
+      fetch(`/simulate_increment?increment=${percent}`)
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector('#compTable tbody');
+          tbody.innerHTML = '';
+          data.forEach(emp => {
+            const row = `<tr>
+              <td>${emp.Name}</td>
+              <td>${emp.Role}</td>
+              <td>${emp.Location}</td>
+              <td>${emp.CurrentComp}</td>
+              <td>${emp.NewComp}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+          });
+        })
+        .catch(err => console.error('Simulation error:', err));
+    }
+  </script>
+</body>
+</html>
