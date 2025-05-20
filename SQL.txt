@@ -1,0 +1,95 @@
+A. Table Creation Scripts
+1. employee_data
+sql
+Copy
+Edit
+CREATE TABLE employee_data (
+    Name TEXT,
+    Role TEXT,
+    Location TEXT,
+    "CurrentComp" FLOAT,
+    "Active" CHAR(1)
+);
+2. average_industry_compensation
+sql
+Copy
+Edit
+CREATE TABLE average_industry_compensation (
+    Location TEXT,
+    Role TEXT,
+    "Average Industry Compensation" FLOAT
+);
+3. filtered_employee_data
+sql
+Copy
+Edit
+CREATE TABLE filtered_employee_data (
+    Name TEXT,
+    Role TEXT,
+    Location TEXT,
+    "Years of Experience" TEXT,
+    "Current Comp (INR)" FLOAT,
+    "Active" CHAR(1),
+    minyears FLOAT
+);
+4. groupbyexperience (used temporarily or derived)
+If you created a separate table to store group-by-experience results:
+
+sql
+Copy
+Edit
+CREATE TABLE groupbyexperience (
+    Role TEXT,
+    Location TEXT,
+    "Years of Experience" FLOAT
+);
+B. Stored Procedures / SQL Logic
+Since PostgreSQL doesn’t use stored procedures often for filtering like MySQL/Oracle, we usually use SQL logic in Python. However, we can document the equivalent SQL logic for clarity.
+
+1. FilterEmployees (User Story 1)
+sql
+Copy
+Edit
+SELECT "Name", "Role", "Location", "CurrentComp"
+FROM employee_data
+WHERE (%s = '' OR "Role" = %s)
+  AND (%s = '' OR "Location" = %s)
+  AND (%s = TRUE OR "Active" = 'Y');
+2. CalculateAverageCompensation (User Story 1)
+sql
+Copy
+Edit
+SELECT "Location", AVG("Average Industry Compensation"::FLOAT) AS avg_comp
+FROM average_industry_compensation
+WHERE (%s = '' OR "Role" = %s)
+GROUP BY "Location";
+3. GroupEmployeesByExperience (User Story 2)
+sql
+Copy
+Edit
+SELECT
+  CASE
+    WHEN minyears IS NULL THEN 'Unknown'
+    WHEN minyears < 1 THEN '0-1'
+    WHEN minyears < 2 THEN '1-2'
+    WHEN minyears < 3 THEN '2-3'
+    WHEN minyears < 5 THEN '3-5'
+    WHEN minyears < 10 THEN '5-10'
+    ELSE '10+'
+  END AS experience_range,
+  COUNT(*) AS count
+FROM filtered_employee_data
+GROUP BY experience_range
+ORDER BY experience_range;
+4. SimulateIncrementedCompensation (User Story 3)
+This logic was implemented in Python, but the equivalent SQL-like logic would be:
+
+sql
+Copy
+Edit
+-- Pseudo SQL logic
+SELECT Name, Role, Location,
+       "CurrentComp",
+       ("CurrentComp" * (1 + (%s / 100.0))) AS NewComp
+FROM employee_data
+WHERE "Active" = 'Y';.)				
